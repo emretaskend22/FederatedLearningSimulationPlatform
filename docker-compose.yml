@@ -8,7 +8,11 @@ services:
     - 8000:8000
     environment:
       MIN_CLIENTS: '2'
-      STRATEGY: FedAvg
+      STRATEGY: FedProx
+      PARTITION: non-iid
+      DP_EPSILON: '0.0'
+    volumes:
+    - ./results:/app/results
     networks:
     - fl-net
   client_0:
@@ -16,7 +20,7 @@ services:
     depends_on:
     - server
     command: python src/client/train.py --client-id 0 --total-clients 2 --partition
-      iid --dp-epsilon 0.0
+      non-iid --dp-epsilon 0.0
     environment:
       SERVER_URL: http://server:8000
     networks:
@@ -26,7 +30,7 @@ services:
     depends_on:
     - server
     command: python src/client/train.py --client-id 1 --total-clients 2 --partition
-      iid --dp-epsilon 0.0
+      non-iid --dp-epsilon 0.0
     environment:
       SERVER_URL: http://server:8000
     networks:

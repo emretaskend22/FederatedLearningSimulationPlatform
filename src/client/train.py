@@ -100,7 +100,13 @@ def main(args):
                 buffer.seek(0)
                 
                 files = {'file': buffer}
-                data = {'client_id': str(args.client_id), 'num_samples': num_samples}
+                # Include metrics in the payload
+                data = {
+                    'client_id': str(args.client_id), 
+                    'num_samples': num_samples,
+                    'loss': metrics['loss'],
+                    'accuracy': metrics['accuracy']
+                }
                 
                 resp = requests.post(f"{SERVER_URL}/update", data=data, files=files)
                 resp.raise_for_status()

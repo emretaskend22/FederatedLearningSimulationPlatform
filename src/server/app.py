@@ -14,9 +14,16 @@ INPUT_DIM = int(os.getenv("INPUT_DIM", 96)) # Adult dataset dimension after proc
 MIN_CLIENTS = int(os.getenv("MIN_CLIENTS", 2))
 MAX_ROUNDS = int(os.getenv("MAX_ROUNDS", 5)) # Default to 5 rounds
 STRATEGY = os.getenv("STRATEGY", "FedAvg")
+PARTITION = os.getenv("PARTITION", "iid")
+DP_EPSILON = float(os.getenv("DP_EPSILON", 0.0))
+
 
 # Global Server Instance
-server = FLServer(input_dim=INPUT_DIM, min_clients=MIN_CLIENTS, max_rounds=MAX_ROUNDS, strategy_name=STRATEGY)
+server_config = {
+    "partition": PARTITION,
+    "epsilon": DP_EPSILON
+}
+server = FLServer(input_dim=INPUT_DIM, min_clients=MIN_CLIENTS, max_rounds=MAX_ROUNDS, strategy_name=STRATEGY, config=server_config)
 
 class RegisterRequest(BaseModel):
     client_id: str
@@ -38,13 +45,14 @@ def get_model():
     return {"encoded_state": base64.b64encode(buffer.getvalue()).decode('utf-8')}
 
 @app.post("/update")
-async def update(client_id: str = Form(...), num_samples: int = Form(...), file: UploadFile = File(...)):
+async def update(client_id: str = Form(...), num_samples: int = Form(...), loss: float = Form(0.0), accuracy: float = Form(0.0), file: UploadFile = File(...)):
     # Read uploaded model file
     content = await file.read()
     buffer = io.BytesIO(content)
     state_dict = torch.load(buffer)
     
-    round_complete = server.receive_update(client_id, state_dict, num_samples)
+    metrics = {"loss": loss, "accuracy": accuracy}
+    round_complete = server.receive_update(client_id, state_dict, num_samples, metrics)
     return {"status": "accepted", "round_complete": round_complete}
 
 @app.get("/config")

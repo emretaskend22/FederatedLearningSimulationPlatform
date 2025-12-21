@@ -14,8 +14,13 @@ def generate_compose(num_clients, strategy='FedAvg', dp_epsilon=0.0, partition='
         'ports': ['8000:8000'],
         'environment': {
             'MIN_CLIENTS': str(num_clients),
-            'STRATEGY': strategy
+            'STRATEGY': strategy,
+            'PARTITION': partition,
+            'DP_EPSILON': str(dp_epsilon)
         },
+        'volumes': [
+            './results:/app/results'
+        ],
         'networks': ['fl-net']
     }
     

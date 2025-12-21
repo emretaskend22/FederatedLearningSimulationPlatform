@@ -7,3 +7,6 @@ fastapi
 uvicorn
 requests
 python-multipart
+streamlit
+matplotlib
+seaborn

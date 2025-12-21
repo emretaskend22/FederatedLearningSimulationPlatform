@@ -74,32 +74,21 @@ class FLClient:
                 optimizer.step()
                 batch_loss += loss.item() * X.size(0)
             
+            
             epoch_loss += batch_loss / len(self.dataset)
 
-        # Apply Client-Level DP if enabled
-        # Update = New_Weights - Old_Weights
-        # We add noise to the weights before returning? Or to the update?
-        # Usually: Client clips the update norm, adds noise, then sends.
-        # But for simplicity here, we can add noise to the parameters directly if they are the "signal".
-        # Let's apply to the state_dict before returning in simulation loop if privacy_engine is set.
-        # BUT `train` modifies `self.model`.
-        # We need to return the weights.
-        
-        # Refined Logic:
-        # We will modify the model in place with noise if requested? No, that ruins local model for next round if stateful.
-        # But FL usually stateless client.
-        
+        # Calculate Training Accuracy (approximate on last epoch) for metrics
+        # Ideally we run a separate eval on local test set, but for training plots we can use this.
+        # Or better, let's just make a quick pass for accuracy on training set or return separate val accuracy.
+        # Let's use the evaluate method which is cleaner.
+        val_loss, val_acc = self.evaluate() # Evaluate on local data
+
         if privacy_engine:
              with torch.no_grad():
                  for param in self.model.parameters():
-                     # Clip to sensitivity (heuristic: assume max_norm or use config)
-                     # For client-level DP, sensitivity is the max norm of the UPDATE.
-                     # We skip clipping here for simplicity unless specified, 
-                     # but strictly we should clip the *difference*
-                     # Let's implement noise addition on the weights for now as a proxy.
                      privacy_engine.apply(param)
 
-        return len(self.dataset), {"loss": epoch_loss}
+        return len(self.dataset), {"loss": val_loss, "accuracy": val_acc}
 
     def evaluate(self, batch_size=32):
         dataloader = DataLoader(self.dataset, batch_size=batch_size)
