@@ -65,7 +65,7 @@ docker-compose down
 ```
 
 ### 5. Automated Grid Search
-To generate data for comparative analysis, run the automation script. This runs multiple permutations (N=2/5, FedAvg/FedProx, IID/Non-IID) sequentially.
+To generate data for comparative analysis, run the automation script. This runs multiple permutations (N=5/10/20, FedAvg/FedProx, IID/Non-IID) sequentially.
 ```bash
 python src/experiments/run_grid_search.py
 ```
