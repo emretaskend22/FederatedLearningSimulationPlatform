@@ -5,8 +5,9 @@ import os
 import sys
 
 # Combinations to run
-# Reduced set for demonstration
-CLIENT_COUNTS = [2, 5] 
+# Combinations to run
+# Full Grid Search (12 Experiments)
+CLIENT_COUNTS = [5, 10, 20] 
 STRATEGIES = ['FedAvg', 'FedProx']
 PARTITIONS = ['iid', 'non-iid']
 # Epsilon: Fixed to 0 for now for speed
@@ -20,7 +21,8 @@ def run_experiment(clients, strategy, partition, epsilon=0.0):
         "--clients", str(clients),
         "--strategy", strategy,
         "--partition", partition,
-        "--epsilon", str(epsilon)
+        "--epsilon", str(epsilon),
+        "--rounds", "20"
     ]
     subprocess.check_call(cmd_gen)
     

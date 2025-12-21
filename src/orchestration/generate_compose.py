@@ -3,7 +3,7 @@ import yaml
 import argparse
 import os
 
-def generate_compose(num_clients, strategy='FedAvg', dp_epsilon=0.0, partition='iid'):
+def generate_compose(num_clients, strategy='FedAvg', dp_epsilon=0.0, partition='iid', rounds=20):
     services = {}
     
     # Server Service
@@ -14,6 +14,7 @@ def generate_compose(num_clients, strategy='FedAvg', dp_epsilon=0.0, partition='
         'ports': ['8000:8000'],
         'environment': {
             'MIN_CLIENTS': str(num_clients),
+            'MAX_ROUNDS': str(rounds),
             'STRATEGY': strategy,
             'PARTITION': partition,
             'DP_EPSILON': str(dp_epsilon)
@@ -47,7 +48,7 @@ def generate_compose(num_clients, strategy='FedAvg', dp_epsilon=0.0, partition='
     with open('docker-compose.yml', 'w') as f:
         yaml.dump(compose_data, f, sort_keys=False)
     
-    print(f"Generated docker-compose.yml for {num_clients} clients, strategy={strategy}, dp={dp_epsilon}")
+    print(f"Generated docker-compose.yml for {num_clients} clients, strategy={strategy}, dp={dp_epsilon}, rounds={rounds}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--strategy", type=str, default='FedAvg')
     parser.add_argument("--epsilon", type=float, default=0.0)
     parser.add_argument("--partition", type=str, default='iid')
+    parser.add_argument("--rounds", type=int, default=20)
     
     args = parser.parse_args()
-    generate_compose(args.clients, args.strategy, args.epsilon, args.partition)
+    generate_compose(args.clients, args.strategy, args.epsilon, args.partition, args.rounds)

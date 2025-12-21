@@ -7,7 +7,8 @@ services:
     ports:
     - 8000:8000
     environment:
-      MIN_CLIENTS: '2'
+      MIN_CLIENTS: '20'
+      MAX_ROUNDS: '20'
       STRATEGY: FedProx
       PARTITION: non-iid
       DP_EPSILON: '0.0'
@@ -19,7 +20,7 @@ services:
     image: fl-platform:latest
     depends_on:
     - server
-    command: python src/client/train.py --client-id 0 --total-clients 2 --partition
+    command: python src/client/train.py --client-id 0 --total-clients 20 --partition
       non-iid --dp-epsilon 0.0
     environment:
       SERVER_URL: http://server:8000
@@ -29,7 +30,187 @@ services:
     image: fl-platform:latest
     depends_on:
     - server
-    command: python src/client/train.py --client-id 1 --total-clients 2 --partition
+    command: python src/client/train.py --client-id 1 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_2:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 2 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_3:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 3 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_4:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 4 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_5:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 5 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_6:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 6 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_7:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 7 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_8:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 8 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_9:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 9 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_10:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 10 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_11:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 11 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_12:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 12 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_13:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 13 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_14:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 14 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_15:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 15 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_16:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 16 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_17:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 17 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_18:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 18 --total-clients 20 --partition
+      non-iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_19:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 19 --total-clients 20 --partition
       non-iid --dp-epsilon 0.0
     environment:
       SERVER_URL: http://server:8000

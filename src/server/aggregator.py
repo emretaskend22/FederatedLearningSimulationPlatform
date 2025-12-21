@@ -79,12 +79,34 @@ class FLServer:
 
         # Clear buffer
         self.updates_buffer = []
+        self.current_round += 1
 
         
         # Save metrics (Placeholder for now, just saving round completion)
         # In a real system we would aggregate validation metrics here. 
         # For simulation, we assume clients trained successfully.
         
+        # Early Stopping Logic
+        patience = 3
+        min_delta = 0.001
+        
+        if not hasattr(self, 'best_loss'):
+            self.best_loss = float('inf')
+            self.patience_counter = 0
+            
+        if round_loss < (self.best_loss - min_delta):
+            self.best_loss = round_loss
+            self.patience_counter = 0
+        else:
+            self.patience_counter += 1
+            logger.info(f"Early Stopping: No improvement ({self.patience_counter}/{patience})")
+            
+        if self.patience_counter >= patience:
+             logger.info(f"Early Stopping Triggered! Loss hasn't improved for {patience} rounds.")
+             self.current_round = self.max_rounds # Force finish
+             self.save_results()
+             return True
+
         # Save partial results every round for live dashboard monitoring
         self.save_results()
         

@@ -9,9 +9,60 @@ import numpy as np
 
 # Set Plot Style
 sns.set_theme(style="whitegrid")
+plt.rcParams.update({'font.size': 9}) # Smaller font for plots
 
 st.set_page_config(layout="wide", page_title="FL Comparative Analysis")
-st.title("Federated Learning: Comparative Analysis")
+
+# --- Custom CSS for Professional UI ---
+st.markdown("""
+<style>
+    .main {
+        background-color: #f8f9fa;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-bottom: 2px solid transparent; 
+        color: #495057;
+        font-weight: 600;
+        font-size: 14px;
+        border-radius: 0px;
+        border: none;
+        padding: 0px 10px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: transparent !important;
+        border-bottom: 3px solid #4e73df !important; /* Underline style */
+        color: #4e73df !important;
+    }
+    h1 {
+        font-family: 'Inter', sans-serif;
+        color: #1a1a1a;
+        text-align: center;
+        padding-bottom: 30px;
+        font-weight: 700;
+    }
+    h3 {
+        color: #4e73df;
+        font-size: 1.1rem;
+        padding-top: 15px;
+        font-weight: 600;
+    }
+    div[data-testid="metric-container"] {
+        background-color: #ffffff;
+        border: 1px solid #f0f0f0;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🛡️ Federated Learning Simulation Platform")
 
 # --- Data Loading ---
 results_dir = "results"
@@ -23,8 +74,6 @@ baseline_loss = 0.0
 if os.path.exists(baseline_path):
     with open(baseline_path, 'r') as f:
         c_data = json.load(f)
-        # Use simple max val for accuracy, min for loss (or last?)
-        # "Best value" is usually better reference.
         baseline_acc = max(c_data['accuracy'])
         baseline_loss = min(c_data['loss'])
 
@@ -37,7 +86,7 @@ if os.path.exists(results_dir):
             with open(os.path.join(results_dir, f), 'r') as file:
                 data = json.load(file)
                 
-                # Parse Filename Metadata (robust fallback)
+                # Parse Filename Metadata
                 match = re.search(r"fl_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
                 if match:
                     data['strategy'] = match.group(1)
@@ -45,13 +94,10 @@ if os.path.exists(results_dir):
                     data['partition'] = match.group(3)
                     data['epsilon'] = float(match.group(4))
                 else:
-                    # Fallback or manual extraction
                     if 'strategy' not in data: data['strategy'] = 'Unknown'
                     if 'clients' not in data: data['clients'] = 0
                     if 'partition' not in data: data['partition'] = 'ios'
 
-                # Extract FINAL metrics
-                # We assume the lists are populated.
                 if 'accuracy' in data and data['accuracy']:
                     data['final_accuracy'] = data['accuracy'][-1]
                 else:
@@ -63,14 +109,13 @@ if os.path.exists(results_dir):
                     data['final_loss'] = 0.0
                 
                 experiments.append(data)
-        except Exception as e:
-            # st.warning(f"Error {f}: {e}")
+        except Exception:
             pass
 
 df = pd.DataFrame(experiments)
 
 if df.empty:
-    st.warning("No experiment results found. Run grid search first.")
+    st.warning("🚀 No experiment results found. Please run the simulation first.")
     st.stop()
 
 # Ensure types
@@ -78,112 +123,99 @@ df['clients'] = df['clients'].astype(int)
 df['final_accuracy'] = df['final_accuracy'].astype(float)
 df['final_loss'] = df['final_loss'].astype(float)
 
-# --- TABS ---
-tabs = st.tabs(["1️⃣ Strategy Comparison", "2️⃣ Scale Analysis", "3️⃣ Data Distribution", "📋 Raw Data"])
+# --- Summary Metrics ---
+total_exps = len(df)
+best_acc = df['final_accuracy'].max()
+best_strategy = df.loc[df['final_accuracy'].idxmax()]['strategy']
 
-# Helper for subplot logic to avoid repetition
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Total Experiments", total_exps)
+col2.metric("Best Accuracy (FL)", f"{best_acc:.4f}")
+col3.metric("Baseline Gap", f"{best_acc - baseline_acc:.4f}")
+col4.metric("Avg Loss", f"{df['final_loss'].mean():.4f}")
+
+st.markdown("---")
+
+# --- TABS ---
+tabs = st.tabs(["📊 Strategy Comparison", "📈 Scale Analysis", "📉 Data Distribution"])
+
+# Helper for subplot logic - REDUCED FIGSIZE
 def plot_comparison(df_sub, x_col, y_col, hue_col, title, ax, baseline_val=None):
     if df_sub.empty:
-        ax.text(0.5, 0.5, "No Data", ha='center', va='center')
+        ax.text(0.5, 0.5, "No Data", ha='center', va='center', fontsize=9, color='grey')
         return
         
-    sns.lineplot(data=df_sub, x=x_col, y=y_col, hue=hue_col, style=hue_col, markers=True, dashes=False, ax=ax, linewidth=2.5, markersize=9)
+    sns.lineplot(data=df_sub, x=x_col, y=y_col, hue=hue_col, style=hue_col, markers=True, dashes=False, ax=ax, linewidth=2.5, markersize=8)
     
     # Baseline
     if baseline_val:
-        ax.axhline(y=baseline_val, color='green', linestyle='--', label='Centralized (Best)', alpha=0.7)
+        ax.axhline(y=baseline_val, color='green', linestyle='--', label='Centralized Baseline', alpha=0.5, linewidth=1.5)
     
-    ax.set_title(title)
-    ax.set_xlabel(x_col.capitalize().replace("_", " "))
-    # Fix integer ticks for clients
+    ax.set_title(title, fontsize=11, fontweight='600', pad=10)
+    ax.set_xlabel(x_col.capitalize().replace("_", " "), fontsize=10)
+    ax.set_ylabel(y_col.replace("final_", "").capitalize(), fontsize=10)
+    ax.tick_params(axis='both', which='major', labelsize=9)
+    
     if x_col == 'clients':
          ax.set_xticks(sorted(df_sub['clients'].unique()))
     
-    ax.legend(title=hue_col.capitalize())
+    ax.legend(fontsize=9, frameon=True)
+    ax.grid(True, linestyle=':', alpha=0.4)
+    # Remove top and right spines
+    sns.despine()
 
 # --- TAB 1: Strategy Comparison ---
 with tabs[0]:
-    st.markdown("### Accuracy/Loss vs Clients (FedAvg vs FedProx)")
-    
-    # Row 1: Accuracy
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Subplot 1: IID
-    plot_comparison(
-        df[df['partition'] == 'iid'], 
-        x_col='clients', y_col='final_accuracy', hue_col='strategy', 
-        title="IID: Accuracy vs Scale", ax=axes[0], baseline_val=baseline_acc
-    )
-    
-    # Subplot 2: Non-IID
-    plot_comparison(
-        df[df['partition'] == 'non-iid'], 
-        x_col='clients', y_col='final_accuracy', hue_col='strategy', 
-        title="Non-IID: Accuracy vs Scale", ax=axes[1], baseline_val=baseline_acc
-    )
-    st.pyplot(fig)
-    
-    # Row 2: Loss (Optional toggle?)
-    st.markdown("#### Loss View")
-    fig2, axes2 = plt.subplots(1, 2, figsize=(14, 5))
-    plot_comparison(
-        df[df['partition'] == 'iid'], 
-        x_col='clients', y_col='final_loss', hue_col='strategy', 
-        title="IID: Loss vs Scale", ax=axes2[0], baseline_val=baseline_loss
-    )
-    plot_comparison(
-        df[df['partition'] == 'non-iid'], 
-        x_col='clients', y_col='final_loss', hue_col='strategy', 
-        title="Non-IID: Loss vs Scale", ax=axes2[1], baseline_val=baseline_loss
-    )
-    st.pyplot(fig2)
+    with st.container():
+        st.caption("Compare how different algorithms perform across IID and Non-IID settings.")
+        
+        # Row 1: Accuracy - Ultra Compact (10, 3.5)
+        fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
+        plot_comparison(df[df['partition'] == 'iid'], 'clients', 'final_accuracy', 'strategy', "IID: Accuracy", axes[0], baseline_acc)
+        plot_comparison(df[df['partition'] == 'non-iid'], 'clients', 'final_accuracy', 'strategy', "Non-IID: Accuracy", axes[1], baseline_acc)
+        st.pyplot(fig)
+
 
 # --- TAB 2: Scale Analysis ---
 with tabs[1]:
-    st.markdown("### Scaling Efficiency (IID vs Non-IID)")
-    
-    # Row 1: Accuracy
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Panel 1: FedAvg scale
-    plot_comparison(
-        df[df['strategy'] == 'FedAvg'],
-        x_col='clients', y_col='final_accuracy', hue_col='partition',
-        title="FedAvg: Scaling Impact", ax=axes[0], baseline_val=baseline_acc
-    )
-    
-    # Panel 2: FedProx scale
-    plot_comparison(
-        df[df['strategy'] == 'FedProx'],
-        x_col='clients', y_col='final_accuracy', hue_col='partition',
-        title="FedProx: Scaling Impact", ax=axes[1], baseline_val=baseline_acc
-    )
-    st.pyplot(fig)
+    with st.container():
+        st.caption("Analyze how model performance degrades as you add more clients.")
+        
+        fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
+        plot_comparison(df[df['strategy'] == 'FedAvg'], 'clients', 'final_accuracy', 'partition', "FedAvg Scaling", axes[0], baseline_acc)
+        plot_comparison(df[df['strategy'] == 'FedProx'], 'clients', 'final_accuracy', 'partition', "FedProx Scaling", axes[1], baseline_acc)
+        st.pyplot(fig)
 
 # --- TAB 3: Data Distribution ---
 with tabs[2]:
-    st.markdown("### Sensitivity to Heterogeneity")
-    
-    # Control: Select N
-    clients_opts = sorted(df['clients'].unique())
-    if clients_opts:
-        sel_n = st.selectbox("Select Client Count (N)", clients_opts)
+    with st.container():
+        st.caption("Assess the robustness of algorithms to data heterogeneity.")
         
-        subset = df[df['clients'] == sel_n]
+        # New Layout: Selection on TOP
+        clients_opts = sorted(df['clients'].unique())
         
-        fig, ax = plt.subplots(figsize=(8, 5))
+        col_c1, col_c2, col_c3 = st.columns([1, 2, 1]) # Column 2 is 50% width centered
+        with col_c2:
+            sel_n = st.selectbox("Select Client Count (N)", clients_opts) if clients_opts else None
         
-        # Bar Chart
-        if not subset.empty:
-            sns.barplot(data=subset, x='partition', y='final_accuracy', hue='strategy', ax=ax, palette='muted')
-            ax.set_ylim(0, 1.0)
-            ax.axhline(y=baseline_acc, color='green', linestyle='--', label='Centralized')
-            ax.set_title(f"Accuracy Gap (IID vs Non-IID) @ N={sel_n}")
-            ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            st.pyplot(fig)
-        else:
-            st.info("No data for this client count.")
+        if sel_n:
+            subset = df[df['clients'] == sel_n]
+            
+            # Constrain to Middle Column
+            with col_c2:
+                # Metric Card style Chart
+                fig, ax = plt.subplots(figsize=(5, 3)) 
+                
+                if not subset.empty:
+                    sns.barplot(data=subset, x='partition', y='final_accuracy', hue='strategy', ax=ax, palette='viridis')
+                    ax.set_ylim(0, 1.05)
+                    ax.axhline(y=baseline_acc, color='green', linestyle='--', label='Centralized', alpha=0.6)
+                    ax.set_title(f"Accuracy Gap @ N={sel_n}", fontsize=10, fontweight='600')
+                    ax.legend(loc='lower right', fontsize=8, frameon=True)
+                    ax.tick_params(labelsize=8)
+                    sns.despine()
+                    st.pyplot(fig, use_container_width=True)
+                else:
+                    st.info("No data for this client count.")
 
-# --- TAB 4: Raw ---
-with tabs[3]:
-    st.dataframe(df)
+

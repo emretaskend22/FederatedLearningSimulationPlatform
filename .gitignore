@@ -47,5 +47,5 @@ config_local.yaml
 
 # Logs and Results
 logs/
-results/
+# results/
 # experiments/
