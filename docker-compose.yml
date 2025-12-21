@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  server:
+    build: .
+    image: fl-platform:latest
+    command: uvicorn src.server.app:app --host 0.0.0.0 --port 8000
+    ports:
+    - 8000:8000
+    environment:
+      MIN_CLIENTS: '2'
+      STRATEGY: FedAvg
+    networks:
+    - fl-net
+  client_0:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 0 --total-clients 2 --partition
+      iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+  client_1:
+    image: fl-platform:latest
+    depends_on:
+    - server
+    command: python src/client/train.py --client-id 1 --total-clients 2 --partition
+      iid --dp-epsilon 0.0
+    environment:
+      SERVER_URL: http://server:8000
+    networks:
+    - fl-net
+networks:
+  fl-net:
+    driver: bridge

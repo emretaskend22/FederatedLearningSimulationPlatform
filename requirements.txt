@@ -1,0 +1,9 @@
+pandas
+numpy
+torch
+scikit-learn
+pyyaml
+fastapi
+uvicorn
+requests
+python-multipart
