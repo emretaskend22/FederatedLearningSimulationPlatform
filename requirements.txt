@@ -1,0 +1,15 @@
+pandas
+numpy
+torch
+torchvision
+scikit-learn
+pyyaml
+fastapi
+uvicorn
+requests
+python-multipart
+streamlit
+matplotlib
+seaborn
+medmnist
+
