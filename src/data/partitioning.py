@@ -14,17 +14,56 @@ class DataPartitioner:
         self.partition = partition
         self.beta = beta
         
-        # Extract labels
-        # Assuming dataset.y is [N, 1] tensor or [N] tensor
+        # Extract labels - support multiple dataset types
+        self.labels = self._extract_labels(dataset)
+        self.client_dict = self._partition_data()
+    
+    def _extract_labels(self, dataset):
+        """
+        Extract labels from various dataset types.
+        
+        Supports:
+        - Custom datasets with .y attribute (AdultDataset, PneumoniaMNISTDataset)
+        - TensorDataset (second tensor is labels)
+        - Datasets with .labels or .targets attributes
+        """
+        # Check for .y attribute (AdultDataset, PneumoniaMNISTDataset)
         if hasattr(dataset, 'y'):
             if hasattr(dataset.y, 'numpy'):
-                 self.labels = dataset.y.numpy().flatten()
+                return dataset.y.numpy().flatten()
             else:
-                 self.labels = np.array(dataset.y).flatten()
-                 
-        # If it's a TensorDataset, getting labels might be different depending on construction
-        # But our AdultDataset provides .y
-        self.client_dict = self._partition_data()
+                return np.array(dataset.y).flatten()
+        
+        # Check for .labels attribute (medmnist datasets)
+        if hasattr(dataset, 'labels'):
+            if hasattr(dataset.labels, 'numpy'):
+                return dataset.labels.numpy().flatten()
+            else:
+                return np.array(dataset.labels).flatten()
+        
+        # Check for .targets attribute (torchvision datasets)
+        if hasattr(dataset, 'targets'):
+            if hasattr(dataset.targets, 'numpy'):
+                return dataset.targets.numpy().flatten()
+            else:
+                return np.array(dataset.targets).flatten()
+        
+        # TensorDataset - second element is labels
+        if hasattr(dataset, 'tensors') and len(dataset.tensors) >= 2:
+            return dataset.tensors[1].numpy().flatten()
+        
+        # Fallback: iterate through dataset to extract labels
+        # This is slower but works for any dataset
+        labels = []
+        for i in range(len(dataset)):
+            _, label = dataset[i]
+            if hasattr(label, 'item'):
+                labels.append(label.item())
+            elif hasattr(label, 'numpy'):
+                labels.append(label.numpy().flatten()[0])
+            else:
+                labels.append(float(label))
+        return np.array(labels).flatten()
 
     def _partition_data(self):
         N = len(self.dataset)

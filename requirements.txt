@@ -1,6 +1,7 @@
 pandas
 numpy
 torch
+torchvision
 scikit-learn
 pyyaml
 fastapi
@@ -10,3 +11,5 @@ python-multipart
 streamlit
 matplotlib
 seaborn
+medmnist
+

@@ -64,9 +64,24 @@ st.markdown("""
 
 st.title("🛡️ Federated Learning Simulation Platform")
 
+# --- Dataset Selection ---
+dataset_options = ["Adult (Fraud Detection)", "PneumoniaMNIST (Medical Imaging)"]
+selected_dataset = st.selectbox("📁 Select Dataset", dataset_options)
+
+is_pneumonia = "Pneumonia" in selected_dataset
+
 # --- Data Loading ---
 results_dir = "results"
-baseline_path = "results/centralized_metrics.json"
+
+# Load appropriate baseline
+if is_pneumonia:
+    baseline_path = "results/centralized_pneumonia_metrics.json"
+    fl_prefix = "fl_pneumonia_"
+    dataset_name = "PneumoniaMNIST"
+else:
+    baseline_path = "results/centralized_metrics.json"
+    fl_prefix = "fl_"
+    dataset_name = "Adult"
 
 # 1. Load Centralized Baseline
 baseline_acc = 0.0
@@ -80,23 +95,46 @@ if os.path.exists(baseline_path):
 # 2. Load FL Experiments
 experiments = []
 if os.path.exists(results_dir):
+    # Load ALL files starting with fl_
     files = [f for f in os.listdir(results_dir) if f.startswith("fl_") and f.endswith(".json")]
     for f in files:
         try:
             with open(os.path.join(results_dir, f), 'r') as file:
                 data = json.load(file)
                 
-                # Parse Filename Metadata
-                match = re.search(r"fl_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
+                # Parsing Logic
+                # 1. New Format: fl_{strategy}_N{clients}_{partition}_eps{epsilon}_{model}.json
+                match = re.search(r"fl_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)_([A-Za-z0-9]+)\.json", f)
                 if match:
                     data['strategy'] = match.group(1)
                     data['clients'] = int(match.group(2))
                     data['partition'] = match.group(3)
                     data['epsilon'] = float(match.group(4))
+                    data['model'] = match.group(5)
+                
+                # 2. Legacy Pneumonia: fl_pneumonia_{strategy}_N{clients}_{partition}_eps{epsilon}.json
+                elif f.startswith("fl_pneumonia_"):
+                    match_p = re.search(r"fl_pneumonia_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
+                    if match_p:
+                        data['strategy'] = match_p.group(1)
+                        data['clients'] = int(match_p.group(2))
+                        data['partition'] = match_p.group(3)
+                        data['epsilon'] = float(match_p.group(4))
+                        data['model'] = 'SimpleCNN' # Legacy pneumonia mapped to SimpleCNN
+                    else:
+                        continue
+                
+                # 3. Legacy Adult: fl_{strategy}_N{clients}_{partition}_eps{epsilon}.json
                 else:
-                    if 'strategy' not in data: data['strategy'] = 'Unknown'
-                    if 'clients' not in data: data['clients'] = 0
-                    if 'partition' not in data: data['partition'] = 'ios'
+                    match_old = re.search(r"fl_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
+                    if match_old:
+                         data['strategy'] = match_old.group(1)
+                         data['clients'] = int(match_old.group(2))
+                         data['partition'] = match_old.group(3)
+                         data['epsilon'] = float(match_old.group(4))
+                         data['model'] = 'SimpleMLP' # Legacy default to Adult/SimpleMLP
+                    else:
+                        continue # Skip unparseable files
 
                 if 'accuracy' in data and data['accuracy']:
                     data['final_accuracy'] = data['accuracy'][-1]
@@ -112,10 +150,34 @@ if os.path.exists(results_dir):
         except Exception:
             pass
 
-df = pd.DataFrame(experiments)
+all_df = pd.DataFrame(experiments)
+
+# Filter by selected dataset
+if not all_df.empty:
+    if is_pneumonia:
+        # Filter for SimpleCNN
+        df = all_df[all_df['model'] == 'SimpleCNN'].copy()
+    else:
+        # Filter for SimpleMLP
+        df = all_df[all_df['model'] == 'SimpleMLP'].copy()
+else:
+    df = pd.DataFrame()
 
 if df.empty:
-    st.warning("🚀 No experiment results found. Please run the simulation first.")
+    st.warning(f"🚀 No experiment results found for {dataset_name}. Please run the simulation first.")
+    st.info(f"""
+    **To run experiments for {dataset_name}:**
+    
+    1. **Centralized Baseline:**
+    ```bash
+    python -m src.centralized.train{'_pneumonia' if is_pneumonia else ''}
+    ```
+    
+    2. **Federated Learning Experiments:**
+    ```bash
+    python src/experiments/run_{'pneumonia_' if is_pneumonia else ''}experiments.py --all
+    ```
+    """)
     st.stop()
 
 # Ensure types
@@ -131,8 +193,8 @@ best_strategy = df.loc[df['final_accuracy'].idxmax()]['strategy']
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Experiments", total_exps)
 col2.metric("Best Accuracy (FL)", f"{best_acc:.4f}")
-col3.metric("Baseline Gap", f"{best_acc - baseline_acc:.4f}")
-col4.metric("Avg Loss", f"{df['final_loss'].mean():.4f}")
+col3.metric("Baseline Accuracy", f"{baseline_acc:.4f}" if baseline_acc > 0 else "N/A")
+col4.metric("Baseline Gap", f"{best_acc - baseline_acc:+.4f}" if baseline_acc > 0 else "N/A")
 
 st.markdown("---")
 
@@ -148,7 +210,7 @@ def plot_comparison(df_sub, x_col, y_col, hue_col, title, ax, baseline_val=None)
     sns.lineplot(data=df_sub, x=x_col, y=y_col, hue=hue_col, style=hue_col, markers=True, dashes=False, ax=ax, linewidth=2.5, markersize=8)
     
     # Baseline
-    if baseline_val:
+    if baseline_val and baseline_val > 0:
         ax.axhline(y=baseline_val, color='green', linestyle='--', label='Centralized Baseline', alpha=0.5, linewidth=1.5)
     
     ax.set_title(title, fontsize=11, fontweight='600', pad=10)
@@ -167,7 +229,7 @@ def plot_comparison(df_sub, x_col, y_col, hue_col, title, ax, baseline_val=None)
 # --- TAB 1: Strategy Comparison ---
 with tabs[0]:
     with st.container():
-        st.caption("Compare how different algorithms perform across IID and Non-IID settings.")
+        st.caption(f"Compare how different algorithms perform across IID and Non-IID settings for {dataset_name}.")
         
         # Row 1: Accuracy - Ultra Compact (10, 3.5)
         fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
@@ -209,7 +271,8 @@ with tabs[2]:
                 if not subset.empty:
                     sns.barplot(data=subset, x='partition', y='final_accuracy', hue='strategy', ax=ax, palette='viridis')
                     ax.set_ylim(0, 1.05)
-                    ax.axhline(y=baseline_acc, color='green', linestyle='--', label='Centralized', alpha=0.6)
+                    if baseline_acc > 0:
+                        ax.axhline(y=baseline_acc, color='green', linestyle='--', label='Centralized', alpha=0.6)
                     ax.set_title(f"Accuracy Gap @ N={sel_n}", fontsize=10, fontweight='600')
                     ax.legend(loc='lower right', fontsize=8, frameon=True)
                     ax.tick_params(labelsize=8)
