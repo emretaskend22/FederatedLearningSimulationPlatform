@@ -95,27 +95,46 @@ if os.path.exists(baseline_path):
 # 2. Load FL Experiments
 experiments = []
 if os.path.exists(results_dir):
-    files = [f for f in os.listdir(results_dir) if f.startswith(fl_prefix) and f.endswith(".json")]
+    # Load ALL files starting with fl_
+    files = [f for f in os.listdir(results_dir) if f.startswith("fl_") and f.endswith(".json")]
     for f in files:
         try:
             with open(os.path.join(results_dir, f), 'r') as file:
                 data = json.load(file)
                 
-                # Parse Filename Metadata - handle both Adult and PneumoniaMNIST patterns
-                if is_pneumonia:
-                    match = re.search(r"fl_pneumonia_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
-                else:
-                    match = re.search(r"fl_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
-                    
+                # Parsing Logic
+                # 1. New Format: fl_{strategy}_N{clients}_{partition}_eps{epsilon}_{model}.json
+                match = re.search(r"fl_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)_([A-Za-z0-9]+)\.json", f)
                 if match:
                     data['strategy'] = match.group(1)
                     data['clients'] = int(match.group(2))
                     data['partition'] = match.group(3)
                     data['epsilon'] = float(match.group(4))
+                    data['model'] = match.group(5)
+                
+                # 2. Legacy Pneumonia: fl_pneumonia_{strategy}_N{clients}_{partition}_eps{epsilon}.json
+                elif f.startswith("fl_pneumonia_"):
+                    match_p = re.search(r"fl_pneumonia_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
+                    if match_p:
+                        data['strategy'] = match_p.group(1)
+                        data['clients'] = int(match_p.group(2))
+                        data['partition'] = match_p.group(3)
+                        data['epsilon'] = float(match_p.group(4))
+                        data['model'] = 'SimpleCNN' # Legacy pneumonia mapped to SimpleCNN
+                    else:
+                        continue
+                
+                # 3. Legacy Adult: fl_{strategy}_N{clients}_{partition}_eps{epsilon}.json
                 else:
-                    if 'strategy' not in data: data['strategy'] = 'Unknown'
-                    if 'clients' not in data: data['clients'] = 0
-                    if 'partition' not in data: data['partition'] = 'iid'
+                    match_old = re.search(r"fl_(.+?)_N(\d+)_(.+?)_eps([\d\.]+)\.json", f)
+                    if match_old:
+                         data['strategy'] = match_old.group(1)
+                         data['clients'] = int(match_old.group(2))
+                         data['partition'] = match_old.group(3)
+                         data['epsilon'] = float(match_old.group(4))
+                         data['model'] = 'SimpleMLP' # Legacy default to Adult/SimpleMLP
+                    else:
+                        continue # Skip unparseable files
 
                 if 'accuracy' in data and data['accuracy']:
                     data['final_accuracy'] = data['accuracy'][-1]
@@ -131,7 +150,18 @@ if os.path.exists(results_dir):
         except Exception:
             pass
 
-df = pd.DataFrame(experiments)
+all_df = pd.DataFrame(experiments)
+
+# Filter by selected dataset
+if not all_df.empty:
+    if is_pneumonia:
+        # Filter for SimpleCNN
+        df = all_df[all_df['model'] == 'SimpleCNN'].copy()
+    else:
+        # Filter for SimpleMLP
+        df = all_df[all_df['model'] == 'SimpleMLP'].copy()
+else:
+    df = pd.DataFrame()
 
 if df.empty:
     st.warning(f"🚀 No experiment results found for {dataset_name}. Please run the simulation first.")
