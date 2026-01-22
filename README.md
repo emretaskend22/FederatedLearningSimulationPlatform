@@ -80,3 +80,15 @@ Open the provided URL (usually `http://localhost:8501`) to see:
 *   **Tab 1**: FedAvg vs. FedProx Comparison.
 *   **Tab 2**: Scalability Analysis (Impact of adding clients).
 *   **Tab 3**: Robustness to Data Distribution (IID vs Non-IID).
+
+## 👥 Team Members
+*   **Emre Taskend**
+*   **Abdul Halim Al Safadi**
+*   **Khalil Saadeddine**
+*   **Serdar Yengil**
+
+## 📚 References
+*   [NVIDIA FLARE Documentation](https://nvflare.readthedocs.io/en/2.4/fl_introduction.html)
+*   [US Census Data (Kaggle)](https://www.kaggle.com/datasets/johnolafenwa/us-census-data)
+*   [MedMNIST v2](https://medmnist.com/)
+
